@@ -1,4 +1,4 @@
-import { WASIAbi } from "./abi";
+import type { WASIAbi } from "./abi";
 
 
 export type WASIFeatureProvider = (options: WASIOptions, abi: WASIAbi, view: () => DataView) => WebAssembly.ModuleImports;

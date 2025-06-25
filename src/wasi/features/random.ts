@@ -1,5 +1,5 @@
 import { WASIAbi } from "../abi";
-import { WASIFeatureProvider, WASIOptions } from "../options";
+import { WASIFeatureProvider, type WASIOptions } from "../options";
 
 /**
  * Create a feature provider that provides `random_get` with `crypto` APIs as backend by default.

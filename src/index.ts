@@ -9,11 +9,11 @@ import {
   WASI,
 } from "./wasi";
 import { instantiateStreaming } from "./wasi/asyncify";
-import { WASIOptions } from "./wasi/options";
+import type { WASIOptions } from "./wasi/options";
 import { StringBuilder } from "./sb";
 
 const cdn = "https://perl.objex.ai/zeroperl-1.0.0.wasm";
-type FetchLike = (...args: any[]) => Promise<Response>;
+type FetchLike = (...args: unknown[]) => Promise<Response>;
 
 /**
  * Configuration options for parsing file metadata with ExifTool
@@ -152,23 +152,29 @@ export async function parseMetadata<TReturn = string>(
         withFileSystem: fileSystem,
         withStdIo: {
           stdout: (str) => {
+            let data: string;
             if (ArrayBuffer.isView(str)) {
-              str = textDecoder.decode(str);
-            }
-            if (StringBuilder.isMultiline(str)) {
-              stdout.append(str);
+              data = textDecoder.decode(str);
             } else {
-              stdout.appendLine(str);
+              data = str;
+            }
+            if (StringBuilder.isMultiline(data)) {
+              stdout.append(data);
+            } else {
+              stdout.appendLine(data);
             }
           },
           stderr: (str) => {
+            let data: string;
             if (ArrayBuffer.isView(str)) {
-              str = textDecoder.decode(str);
-            }
-            if (StringBuilder.isMultiline(str)) {
-              stderr.append(str);
+              data = textDecoder.decode(str);
             } else {
-              stderr.appendLine(str);
+              data = str;
+            }
+            if (StringBuilder.isMultiline(data)) {
+              stderr.append(data);
+            } else {
+              stderr.appendLine(data);
             }
           },
         },
