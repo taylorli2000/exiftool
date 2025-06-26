@@ -1,6 +1,6 @@
 # @uswriting/exiftool
 
-[ExifTool](https://exiftool.org) (13.11) powered by WebAssembly to extract metadata from files in browsers and Node.js environments using [zeroperl](https://github.com/uswriting/zeroperl).
+[ExifTool](https://exiftool.org) (13.30) powered by WebAssembly to extract and write metadata from files in browsers and Node.js environments using [zeroperl](https://github.com/uswriting/zeroperl).
 
 ## Installation
 
@@ -30,6 +30,23 @@ document.querySelector('input[type="file"]').addEventListener('change', async (e
     console.error('Error:', result.error);
   }
 });
+```
+
+### Writing Metadata
+
+```typescript
+import { writeMetadata } from '@uswriting/exiftool';
+
+const result = await writeMetadata(file, {
+  'Author': 'John Doe',
+  'Title': 'My Photo',
+  'Keywords': 'nature,photography'
+});
+
+if (result.success) {
+  // result.data contains the modified file as Uint8Array
+  const modifiedBlob = new Blob([result.data]);
+}
 ```
 
 ### Extracting Specific Metadata
@@ -84,20 +101,21 @@ async function parseMetadata<TReturn = string>(
 - `file`: Either a browser `File` object or a `Binaryfile` object with `name` and `data` properties.
 - `options`: Configuration options for the metadata extraction.
 
-#### Options
+### writeMetadata()
 
 ```typescript
-interface ExifToolOptions<TReturn> {
-  // Additional command-line arguments to pass to ExifTool
-  args?: string[];
-  
-  // Custom fetch implementation for loading the WASM module
-  fetch?: (...args: any[]) => Promise<Response>;
-  
-  // Transform the raw ExifTool output into a different format
-  transform?: (data: string) => TReturn;
-}
+async function writeMetadata(
+  file: Binaryfile | File,
+  tags: ExifTags,
+  options: ExifToolOptions = {}
+): Promise<ExifToolOutput<ArrayBuffer>>
 ```
+
+#### Parameters
+
+- `file`: Either a browser `File` object or a `Binaryfile` object with `name` and `data` properties.
+- `tags`: Object containing metadata tags to write, where keys are tag names and values are tag values.
+- `options`: Configuration options for the write operation.
 
 #### Return Value
 

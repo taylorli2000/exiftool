@@ -1,7 +1,7 @@
 {
   "name": "@uswriting/exiftool",
-  "version": "1.0.3",
-  "description": "ExifTool powered by WebAssembly to extract metadata from files in browsers and Node.js environments using zeroperl",
+  "version": "1.0.4",
+  "description": "ExifTool powered by WebAssembly to extract and write metadata from files in browsers and Node.js environments using zeroperl",
   "scripts": {
     "build": "node build.mjs && tsc --emitDeclarationOnly",
     "test": "echo \"Error: no test specified\" && exit 1"
