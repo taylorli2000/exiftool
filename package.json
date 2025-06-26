@@ -30,13 +30,13 @@
   "author": "United States Writing Corporation",
   "license": "Apache-2.0",
   "type": "module",
-  "homepage": "https://github.com/uswriting/exiftool#readme",
+  "homepage": "https://github.com/6over3/exiftool#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/uswriting/exiftool.git"
+    "url": "git+https://github.com/6over3/exiftool.git"
   },
   "bugs": {
-    "url": "https://github.com/uswriting/exiftool/issues"
+    "url": "https://github.com/6over3/exiftool/issues"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",
