@@ -1,12 +1,12 @@
 import exiftool from "./ex";
 import { MemoryFileSystem, useMemoryFS } from "./wasi/features/fd";
 import {
-	useArgs,
-	useClock,
-	useEnviron,
-	useProc,
-	useRandom,
-	WASI,
+  useArgs,
+  useClock,
+  useEnviron,
+  useProc,
+  useRandom,
+  WASI,
 } from "./wasi";
 import { instantiateStreaming } from "./wasi/asyncify";
 import type { WASIOptions } from "./wasi/options";
@@ -16,8 +16,8 @@ const cdn = "https://perl.objex.ai/zeroperl-1.0.1.wasm";
 type FetchLike = (...args: unknown[]) => Promise<Response>;
 
 export type ExifTags = Record<
-	string,
-	string | number | boolean | (string | number | boolean)[]
+  string,
+  string | number | boolean | (string | number | boolean)[]
 >;
 
 /**
@@ -25,41 +25,41 @@ export type ExifTags = Record<
  * @template TransformReturn The type of the transformed output data
  */
 export interface ExifToolOptions<TransformReturn = unknown> {
-	/**
-	 * Additional command-line arguments to pass to ExifTool
-	 *
-	 * @example
-	 * // Extract specific tags
-	 * args: ["-Author", "-CreateDate"]
-	 *
-	 * @example
-	 * // Output as JSON
-	 * args: ["-json", "-n"]
-	 *
-	 * @see https://exiftool.org/exiftool_pod.html for all available options
-	 */
-	args?: string[];
+  /**
+   * Additional command-line arguments to pass to ExifTool
+   *
+   * @example
+   * // Extract specific tags
+   * args: ["-Author", "-CreateDate"]
+   *
+   * @example
+   * // Output as JSON
+   * args: ["-json", "-n"]
+   *
+   * @see https://exiftool.org/exiftool_pod.html for all available options
+   */
+  args?: string[];
 
-	/**
-	 * Custom fetch implementation for loading the WASM module
-	 *
-	 * Only needed for environments with custom fetch polyfills
-	 */
-	fetch?: FetchLike;
+  /**
+   * Custom fetch implementation for loading the WASM module
+   *
+   * Only needed for environments with custom fetch polyfills
+   */
+  fetch?: FetchLike;
 
-	/**
-	 * Transform the raw ExifTool output into a different format
-	 *
-	 * @example
-	 * // Parse output as JSON
-	 * transform: (data) => JSON.parse(data)
-	 */
-	transform?: (data: string) => TransformReturn;
+  /**
+   * Transform the raw ExifTool output into a different format
+   *
+   * @example
+   * // Parse output as JSON
+   * transform: (data) => JSON.parse(data)
+   */
+  transform?: (data: string) => TransformReturn;
 
-	/**
-	 * The ExifTool_config
-	 */
-	config?: Binaryfile | File;
+  /**
+   * The ExifTool_config
+   */
+  config?: Binaryfile | File;
 }
 
 const textDecoder = new TextDecoder();
@@ -68,10 +68,10 @@ const textDecoder = new TextDecoder();
  * Represents a binary file for metadata extraction
  */
 type Binaryfile = {
-	/** Filename with extension (e.g., "image.jpg") */
-	name: string;
-	/** The binary content of the file */
-	data: Uint8Array | Blob;
+  /** Filename with extension (e.g., "image.jpg") */
+  name: string;
+  /** The binary content of the file */
+  data: Uint8Array | Blob;
 };
 
 /**
@@ -79,26 +79,26 @@ type Binaryfile = {
  * @template TOutput The type of the output data after transformation
  */
 type ExifToolOutput<TOutput> =
-	| {
-			/** True when metadata was successfully extracted */
-			success: true;
-			/** The extracted metadata, transformed if a transform function was provided */
-			data: TOutput;
-			/** Any warnings or info messages from ExifTool */
-			error: string;
-			/** Always 0 for success */
-			exitCode: 0;
-	  }
-	| {
-			/** False when metadata extraction failed */
-			success: false;
-			/** No data available on failure */
-			data: undefined;
-			/** Error message explaining why the operation failed */
-			error: string;
-			/** Non-zero exit code indicating the type of failure */
-			exitCode: number | undefined;
-	  };
+  | {
+      /** True when metadata was successfully extracted */
+      success: true;
+      /** The extracted metadata, transformed if a transform function was provided */
+      data: TOutput;
+      /** Any warnings or info messages from ExifTool */
+      error: string;
+      /** Always 0 for success */
+      exitCode: 0;
+    }
+  | {
+      /** False when metadata extraction failed */
+      success: false;
+      /** No data available on failure */
+      data: undefined;
+      /** Error message explaining why the operation failed */
+      error: string;
+      /** Non-zero exit code indicating the type of failure */
+      exitCode: number | undefined;
+    };
 
 /**
  * Extract metadata from a file using ExifTool
@@ -130,113 +130,112 @@ type ExifToolOutput<TOutput> =
  * }
  */
 export async function parseMetadata<TReturn = string>(
-	file: Binaryfile | File,
-	options: ExifToolOptions<TReturn> = {},
+  file: Binaryfile | File,
+  options: ExifToolOptions<TReturn> = {}
 ): Promise<ExifToolOutput<TReturn>> {
-	const fileSystem = new MemoryFileSystem({
-		"/": "",
-	});
+  const fileSystem = new MemoryFileSystem({
+    "/": "",
+  });
 
-	fileSystem.addFile("/exiftool", exiftool);
-	if (file instanceof File) {
-		fileSystem.addFile(`/${file.name}`, file);
-	} else {
-		fileSystem.addFile(`/${file.name}`, file.data);
-	}
-	if (options.config) {
-		if (options.config instanceof File) {
-			fileSystem.addFile(`/${options.config.name}`, options.config);
-		} else {
-			fileSystem.addFile(`/${options.config.name}`, options.config.data);
-		}
-		options.args = options.args || [];
-		options.args.push(`-config=${options.config.name}`);
-	}
-	const stdout = new StringBuilder();
-	const stderr = new StringBuilder();
-	const args = ["zeroperl", "exiftool"].concat(options.args || []);
-	args.push(`/${file.name}`);
-	const wasiOptions: WASIOptions = {
-		env: {
-			LC_ALL: "C",
-			PERL_UNICODE: "SAD",
-		},
-		args: args,
-		features: [
-			useEnviron,
-			useArgs,
-			useRandom,
-			useClock,
-			useProc,
-			useMemoryFS({
-				withFileSystem: fileSystem,
-				withStdIo: {
-					stdout: (str) => {
-						let data: string;
-						if (ArrayBuffer.isView(str)) {
-							data = textDecoder.decode(str);
-						} else {
-							data = str;
-						}
-						if (StringBuilder.isMultiline(data)) {
-							stdout.append(data);
-						} else {
-							stdout.appendLine(data);
-						}
-					},
-					stderr: (str) => {
-						let data: string;
-						if (ArrayBuffer.isView(str)) {
-							data = textDecoder.decode(str);
-						} else {
-							data = str;
-						}
-						if (StringBuilder.isMultiline(data)) {
-							stderr.append(data);
-						} else {
-							stderr.appendLine(data);
-						}
-					},
-				},
-			}),
-		],
-	};
-	const wasi = new WASI(wasiOptions);
-	const f = options.fetch ?? fetch;
-	const { instance } = await instantiateStreaming(f(cdn), {
-		wasi_snapshot_preview1: wasi.wasiImport,
-	});
-	const exitCode = await wasi.start(instance);
-	if (exitCode !== 0) {
-		return {
-			success: false,
-			data: undefined,
-			error: stderr.toString(),
-			exitCode,
-		};
-	}
-	let data: TReturn;
-	if (options.transform) {
-		data = options.transform(stdout.toString());
-	} else {
-		data = stdout.toString() as unknown as TReturn;
-	}
-	return {
-		success: true,
-		data: data,
-		error: stderr.toString(),
-		exitCode,
-	};
+  fileSystem.addFile("/exiftool", exiftool);
+  if (file instanceof File) {
+    fileSystem.addFile(`/${file.name}`, file);
+  } else {
+    fileSystem.addFile(`/${file.name}`, file.data);
+  }
+  if (options.config) {
+    if (options.config instanceof File) {
+      fileSystem.addFile(`/${options.config.name}`, options.config);
+    } else {
+      fileSystem.addFile(`/${options.config.name}`, options.config.data);
+    }
+    options.args = options.args || [];
+    options.args.push(`-config=${options.config.name}`);
+  }
+  const stdout = new StringBuilder();
+  const stderr = new StringBuilder();
+  const args = ["zeroperl", "exiftool"].concat(options.args || []);
+  args.push(`/${file.name}`);
+  const wasiOptions: WASIOptions = {
+    env: {
+      LC_ALL: "C",
+      PERL_UNICODE: "SAD",
+    },
+    args: args,
+    features: [
+      useEnviron,
+      useArgs,
+      useRandom,
+      useClock,
+      useProc,
+      useMemoryFS({
+        withFileSystem: fileSystem,
+        withStdIo: {
+          stdout: (str) => {
+            let data: string;
+            if (ArrayBuffer.isView(str)) {
+              data = textDecoder.decode(str);
+            } else {
+              data = str;
+            }
+            if (StringBuilder.isMultiline(data)) {
+              stdout.append(data);
+            } else {
+              stdout.appendLine(data);
+            }
+          },
+          stderr: (str) => {
+            let data: string;
+            if (ArrayBuffer.isView(str)) {
+              data = textDecoder.decode(str);
+            } else {
+              data = str;
+            }
+            if (StringBuilder.isMultiline(data)) {
+              stderr.append(data);
+            } else {
+              stderr.appendLine(data);
+            }
+          },
+        },
+      }),
+    ],
+  };
+  const wasi = new WASI(wasiOptions);
+  const f = options.fetch ?? fetch;
+  const { instance } = await instantiateStreaming(f(cdn), {
+    wasi_snapshot_preview1: wasi.wasiImport,
+  });
+  const exitCode = await wasi.start(instance);
+  if (exitCode !== 0) {
+    return {
+      success: false,
+      data: undefined,
+      error: stderr.toString(),
+      exitCode,
+    };
+  }
+  let data: TReturn;
+  if (options.transform) {
+    data = options.transform(stdout.toString());
+  } else {
+    data = stdout.toString() as unknown as TReturn;
+  }
+  return {
+    success: true,
+    data: data,
+    error: stderr.toString(),
+    exitCode,
+  };
 }
 
 function transformTags(tags: ExifTags): string[] {
-	return Object.entries(tags).flatMap(([name, value]) =>
-		Array.isArray(value)
-			? value.map((value) => `-${name}=${value}`)
-			: [`-${name}=${value}`],
-	);
+  return Object.entries(tags).flatMap(([name, value]) =>
+    Array.isArray(value)
+      ? value.map((value) => `-${name}=${value}`)
+      : [`-${name}=${value}`]
+  );
 }
-
 
 /**
  * Write metadata to a file using ExifTool
@@ -260,7 +259,7 @@ function transformTags(tags: ExifTags): string[] {
  *     'Title': 'My Photo',
  *     'Keywords': 'nature,photography'
  *   });
- *   
+ *
  *   if (result.success) {
  *     // result.data contains the modified file as Uint8Array
  *     const modifiedBlob = new Blob([result.data]);
@@ -314,124 +313,124 @@ function transformTags(tags: ExifTags): string[] {
  * @since 1.0.4
  */
 export async function writeMetadata(
-	file: Binaryfile | File,
-	tags: ExifTags,
-	options: ExifToolOptions = {},
+  file: Binaryfile | File,
+  tags: ExifTags,
+  options: ExifToolOptions = {}
 ): Promise<ExifToolOutput<ArrayBuffer>> {
-	const fileSystem = new MemoryFileSystem({
-		"/": "",
-	});
+  const fileSystem = new MemoryFileSystem({
+    "/": "",
+  });
 
-	const args = options.args || [];
+  const args = options.args || [];
 
-	fileSystem.addFile("/exiftool", exiftool);
-	if (file instanceof File) {
-		fileSystem.addFile(`/${file.name}`, file);
-	} else {
-		fileSystem.addFile(`/${file.name}`, file.data);
-	}
+  fileSystem.addFile("/exiftool", exiftool);
+  if (file instanceof File) {
+    fileSystem.addFile(`/${file.name}`, file);
+  } else {
+    fileSystem.addFile(`/${file.name}`, file.data);
+  }
 
-	if (options.config) {
-		if (options.config instanceof File) {
-			fileSystem.addFile(`/${options.config.name}`, options.config);
-		} else {
-			fileSystem.addFile(`/${options.config.name}`, options.config.data);
-		}
-		args.push(`-config=${options.config.name}`);
-	}
+  if (options.config) {
+    if (options.config instanceof File) {
+      fileSystem.addFile(`/${options.config.name}`, options.config);
+    } else {
+      fileSystem.addFile(`/${options.config.name}`, options.config.data);
+    }
+    args.push(`-config=${options.config.name}`);
+  }
 
-	args.push(...transformTags(tags));
-	const tempFile = `/${crypto.randomUUID().replace(/-/g, "")}.tmp`;
+  args.push(...transformTags(tags));
+  const tempFile = `/${crypto.randomUUID().replace(/-/g, "")}.tmp`;
 
-	const exiftoolArgs = ["zeroperl", "exiftool"];
-	exiftoolArgs.push(...args);
-	exiftoolArgs.push("-o", tempFile);
-	exiftoolArgs.push(`/${file.name}`);
+  const exiftoolArgs = ["zeroperl", "exiftool"];
+  exiftoolArgs.push(...args);
+  exiftoolArgs.push("-o", tempFile);
+  exiftoolArgs.push(`/${file.name}`);
 
-	const stdout = new StringBuilder();
-	const stderr = new StringBuilder();
+  const stdout = new StringBuilder();
+  const stderr = new StringBuilder();
 
-	const wasiOptions: WASIOptions = {
-		env: {
-			LC_ALL: "C",
-			PERL_UNICODE: "SAD",
-		},
-		args: exiftoolArgs,
-		features: [
-			useEnviron,
-			useArgs,
-			useRandom,
-			useClock,
-			useProc,
-			useMemoryFS({
-				withFileSystem: fileSystem,
-				withStdIo: {
-					stdout: (str) => {
-						let data: string;
-						if (ArrayBuffer.isView(str)) {
-							data = textDecoder.decode(str);
-						} else {
-							data = str;
-						}
-						if (StringBuilder.isMultiline(data)) {
-							stdout.append(data);
-						} else {
-							stdout.appendLine(data);
-						}
-					},
-					stderr: (str) => {
-						let data: string;
-						if (ArrayBuffer.isView(str)) {
-							data = textDecoder.decode(str);
-						} else {
-							data = str;
-						}
-						if (StringBuilder.isMultiline(data)) {
-							stderr.append(data);
-						} else {
-							stderr.appendLine(data);
-						}
-					},
-				},
-			}),
-		],
-	};
+  const wasiOptions: WASIOptions = {
+    env: {
+      LC_ALL: "C",
+      PERL_UNICODE: "SAD",
+    },
+    args: exiftoolArgs,
+    features: [
+      useEnviron,
+      useArgs,
+      useRandom,
+      useClock,
+      useProc,
+      useMemoryFS({
+        withFileSystem: fileSystem,
+        withStdIo: {
+          stdout: (str) => {
+            let data: string;
+            if (ArrayBuffer.isView(str)) {
+              data = textDecoder.decode(str);
+            } else {
+              data = str;
+            }
+            if (StringBuilder.isMultiline(data)) {
+              stdout.append(data);
+            } else {
+              stdout.appendLine(data);
+            }
+          },
+          stderr: (str) => {
+            let data: string;
+            if (ArrayBuffer.isView(str)) {
+              data = textDecoder.decode(str);
+            } else {
+              data = str;
+            }
+            if (StringBuilder.isMultiline(data)) {
+              stderr.append(data);
+            } else {
+              stderr.appendLine(data);
+            }
+          },
+        },
+      }),
+    ],
+  };
 
-	const wasi = new WASI(wasiOptions);
-	const f = options.fetch ?? fetch;
-	const { instance } = await instantiateStreaming(f(cdn), {
-		wasi_snapshot_preview1: wasi.wasiImport,
-	});
+  const wasi = new WASI(wasiOptions);
+  const f = options.fetch ?? fetch;
+  const { instance } = await instantiateStreaming(f(cdn), {
+    wasi_snapshot_preview1: wasi.wasiImport,
+  });
 
-	const exitCode = await wasi.start(instance);
+  const exitCode = await wasi.start(instance);
 
-	if (exitCode !== 0) {
-		return {
-			success: false,
-			data: undefined,
-			error: stderr.toString(),
-			exitCode,
-		};
-	}
+  if (exitCode !== 0) {
+    return {
+      success: false,
+      data: undefined,
+      error: stderr.toString(),
+      exitCode,
+    };
+  }
 
-	const node = fileSystem.lookup(tempFile);
-	if (!node || node.type !== "file") {
-		return {
-			success: false,
-			data: undefined,
-			error: `Temporary output file not found: ${tempFile}`,
-			exitCode,
-		};
-	}
+  const node = fileSystem.lookup(tempFile);
+  if (!node || node.type !== "file") {
+    return {
+      success: false,
+      data: undefined,
+      error: `Temporary output file not found: ${tempFile}`,
+      exitCode,
+    };
+  }
 
-	const outputData =
-		node.content instanceof Blob
-			? await node.content.arrayBuffer()
-			: (node.content.buffer as ArrayBuffer);
-	return {
-		success: true,
-		data: outputData,
-		error: stderr.toString(),
-		exitCode,
-	};
+  const outputData =
+    node.content instanceof Blob
+      ? await node.content.arrayBuffer()
+      : (node.content.buffer as ArrayBuffer);
+  return {
+    success: true,
+    data: outputData,
+    error: stderr.toString(),
+    exitCode,
+  };
 }
