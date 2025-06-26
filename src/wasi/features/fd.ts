@@ -1,5 +1,5 @@
 import { WASIAbi } from "../abi";
-import { WASIFeatureProvider, WASIOptions } from "../options";
+import type { WASIFeatureProvider, WASIOptions } from "../options";
 
 interface FdEntry {
   writev(iovs: Uint8Array[]): number;
@@ -50,11 +50,10 @@ export class ReadableTextProxy implements FdEntry {
     if (pending.byteLength < requestLength) {
       this.pending = null;
       return pending;
-    } else {
+    }
       const result = pending.slice(0, requestLength);
       this.pending = pending.slice(requestLength);
       return result;
-    }
   }
   readv(iovs: Uint8Array[]): number {
     let read = 0;
@@ -76,7 +75,7 @@ export class ReadableTextProxy implements FdEntry {
           bytes = this.encoder.encode(newData);
         }
 
-        if (bytes.length == 0) {
+        if (bytes.length === 0) {
           return read;
         }
         if (bytes.length > remaining) {
@@ -258,11 +257,11 @@ export class MemoryFileSystem {
 
     // Setup preopened directories
     if (preopens) {
-      Object.keys(preopens).forEach((guestPath) => {
+      for (const guestPath of Object.keys(preopens)) {
         // there are no 'host' paths in a memory file system, so we just use the guest path.
         this.ensureDir(guestPath);
         this.preopenPaths.push(guestPath);
-      });
+      }
     } else {
       this.preopenPaths.push("/");
     }
@@ -271,10 +270,12 @@ export class MemoryFileSystem {
   removeFile(path: string) {
     const normalizedPath = this.normalizePath(path);
     const parts = normalizedPath.split("/").filter((p) => p.length > 0);
-    const fileName = parts.pop()!;
-    const dirPath = "/" + parts.join("/");
+    const fileName = parts.pop();
+    const dirPath = `/${parts.join("/")}`;
     const dir = this.ensureDir(dirPath);
-    delete dir.entries[fileName];
+    if (fileName) {
+      delete dir.entries[fileName];
+    }
   }
 
   addFile(path: string, content: FileContent): void {
@@ -282,9 +283,8 @@ export class MemoryFileSystem {
       const data = new TextEncoder().encode(content);
       this.createFile(path, data);
       return;
-    } else {
-      this.createFile(path, content);
     }
+      this.createFile(path, content);
   }
 
   /**
@@ -316,10 +316,12 @@ export class MemoryFileSystem {
       return;
     }
 
-    const fileName = parts.pop()!;
-    const dirPath = "/" + parts.join("/");
+    const fileName = parts.pop();
+    const dirPath = `/${parts.join("/")}`;
     const dir = this.ensureDir(dirPath);
-    dir.entries[fileName] = node;
+    if (fileName) {
+      dir.entries[fileName] = node;
+    }
   }
 
   /**
@@ -426,7 +428,10 @@ export class MemoryFileSystem {
       throw new Error("Cannot create a file with an empty name");
     }
 
-    const fileName = parts.pop()!;
+    const fileName = parts.pop();
+    if (!fileName) {
+      throw new Error("Cannot create a file with an empty name");
+    }
     let current = dir;
 
     for (const part of parts) {
@@ -568,9 +573,8 @@ export function useMemoryFS(
     function getFileSize(file: FileNode): number {
       if (file.content instanceof Blob) {
         return file.content.size;
-      } else {
-        return file.content.byteLength;
       }
+        return file.content.byteLength;
     }
 
     return {
@@ -859,7 +863,7 @@ export function useMemoryFS(
         const path = abi.readString(view, pathPtr, pathLen);
 
         const guestPath =
-          (dirEntry.path.endsWith("/") ? dirEntry.path : dirEntry.path + "/") +
+          (dirEntry.path.endsWith("/") ? dirEntry.path : `${dirEntry.path}/`) +
           path;
 
         const existing = getFileFromPath(guestPath);
@@ -869,9 +873,9 @@ export function useMemoryFS(
         }
 
         let target = fileSystem.resolve(dirEntry.node, path);
-        const O_CREAT = 1 << 0,
-          O_EXCL = 1 << 1,
-          O_TRUNC = 1 << 2;
+        const O_CREAT = 1 << 0;
+        const O_EXCL = 1 << 1;
+        const O_TRUNC = 1 << 2;
 
         if (target) {
           if (oflags & O_EXCL) return WASIAbi.WASI_ERRNO_EXIST;
@@ -919,7 +923,7 @@ export function useMemoryFS(
         const path = abi.readString(view, pathPtr, pathLen);
 
         const guestPath =
-          (dirEntry.path.endsWith("/") ? dirEntry.path : dirEntry.path + "/") +
+          (dirEntry.path.endsWith("/") ? dirEntry.path : `${dirEntry.path}/`) +
           path;
 
         const existing = getFileFromPath(guestPath);
@@ -929,9 +933,9 @@ export function useMemoryFS(
         }
 
         let target = fileSystem.resolve(dirEntry.node as DirectoryNode, path);
-        const O_CREAT = 1 << 0,
-          O_EXCL = 1 << 1,
-          O_TRUNC = 1 << 2;
+        const O_CREAT = 1 << 0;
+        const O_EXCL = 1 << 1;
+        const O_TRUNC = 1 << 2;
 
         if (target) {
           if (oflags & O_EXCL) return WASIAbi.WASI_ERRNO_EXIST;
@@ -982,7 +986,7 @@ export function useMemoryFS(
         const basePath = file.path;
         const fullGuestPath = basePath.endsWith("/")
           ? basePath + guestRelPath
-          : basePath + "/" + guestRelPath;
+          : `${basePath}/${guestRelPath}`;
 
         // Lookup the node in the MemoryFS.
         const node = fileSystem.lookup(fullGuestPath);
@@ -1011,7 +1015,7 @@ export function useMemoryFS(
   };
 }
 
-export function useFS(useOptions: { fs: any }): WASIFeatureProvider {
+export function useFS(useOptions: { fs: unknown }): WASIFeatureProvider {
   return (options: WASIOptions, abi: WASIAbi, memoryView: () => DataView) => {
     // TODO: implement fd_* syscalls using `useOptions.fs`
     return {};

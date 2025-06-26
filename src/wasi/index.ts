@@ -1,6 +1,6 @@
 import { WASIAbi, WASIProcExit } from "./abi";
 export { WASIProcExit } from "./abi";
-import { WASIOptions } from "./options";
+import type { WASIOptions } from "./options";
 
 export * from "./features/args";
 export * from "./features/clock";
@@ -17,13 +17,13 @@ export class WASI {
      */
     readonly wasiImport: WebAssembly.ModuleImports;
     private instance: WebAssembly.Instance | null = null;
-    private isStarted: boolean = false;
+    private isStarted = false;
     private abi: WASIAbi;
 
     constructor(options?: WASIOptions) {
         this.wasiImport = {};
         this.abi = new WASIAbi();
-        if (options && options.features) {
+        if (options?.features) {
             const importProviders: Record<string, string> = {};
             for (const useFeature of options.features) {
                 const featureName = useFeature.name || 'Unknown feature';

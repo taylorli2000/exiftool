@@ -8,7 +8,7 @@ export class StringBuilder {
    * Creates a new StringBuilder instance
    * @param initialValue Optional initial string value
    */
-  constructor(initialValue: string = "") {
+  constructor(initialValue = "") {
     this.parts = initialValue ? [initialValue] : [];
   }
 
@@ -27,8 +27,8 @@ export class StringBuilder {
    * @param str The string to append
    * @returns The StringBuilder instance for chaining
    */
-  appendLine(str: string = ""): StringBuilder {
-    this.parts.push(str + "\n");
+  appendLine(str = ""): StringBuilder {
+    this.parts.push(`${str}\n`);
     return this;
   }
 

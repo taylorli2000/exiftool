@@ -1,5 +1,5 @@
 import { WASIAbi } from "../abi";
-import { WASIOptions } from "../options";
+import type { WASIOptions } from "../options";
 
 /**
  * A feature provider that provides `clock_res_get` and `clock_time_get` by JavaScript's Date.
@@ -26,7 +26,7 @@ export function useClock(options: WASIOptions, abi: WASIAbi, memoryView: () => D
             return WASIAbi.WASI_ESUCCESS;
         },
         clock_time_get: (clockId: number, precision: number, time: number) => {
-            let nowMs: number = 0;
+            let nowMs = 0;
             switch (clockId) {
                 case WASIAbi.WASI_CLOCK_MONOTONIC: {
                     nowMs = performance.now();
