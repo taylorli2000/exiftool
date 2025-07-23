@@ -1,7 +1,7 @@
 {
-  "name": "@uswriting/exiftool",
-  "version": "1.0.5",
-  "description": "ExifTool powered by WebAssembly to extract and write metadata from files in browsers and Node.js environments using zeroperl",
+  "name": "@taylorli2000/exiftool",
+  "version": "1.0.0",
+  "description": "This is a fork of @uswriting/exiftool to provide cjs compatibility. ExifTool powered by WebAssembly to extract and write metadata from files in browsers and Node.js environments using zeroperl",
   "scripts": {
     "build": "npm run build:esm && npm run build:cjs && node build.mjs",
     "build:esm": "tsc --emitDeclarationOnly -p tsconfig.esm.json",
@@ -61,7 +61,7 @@
     "media",
     "zeroperl"
   ],
-  "author": "United States Writing Corporation",
+  "author": "Taylor Li",
   "license": "Apache-2.0",
   "type": "module",
   "types": "dist/esm/types/index.d.ts",
@@ -71,10 +71,10 @@
   "homepage": "https://github.com/6over3/exiftool#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/6over3/exiftool.git"
+    "url": "git+https://github.com/taylorli2000/exiftool.git"
   },
   "bugs": {
-    "url": "https://github.com/6over3/exiftool/issues"
+    "url": "https://github.com/taylorli2000/exiftool/issues"
   },
   "devDependencies": {
     "@swc/helpers": "^0.5.17",
